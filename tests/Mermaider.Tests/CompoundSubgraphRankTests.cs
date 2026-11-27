@@ -5,8 +5,8 @@ using AwesomeAssertions;
 namespace Mermaider.Tests;
 
 /// <summary>
-/// Vertical order of flowchart nodes inside nested subgraphs, checked against the layers dagre 3.1.4 (the layout engine
-/// of mermaid.js) computes for the same graph. The fixture is an anonymised copy of a real diagram with the same
+/// Vertical order of flowchart nodes inside nested subgraphs, checked against the rows mermaid-cli 12.2.0 (mermaid.js)
+/// computes for the same graph. The fixture is an anonymised copy of a real diagram with the same
 /// structure: 21 nodes, 24 edges, 8 subgraphs (3 top-level, 5 nested), 19 edges that cross a subgraph border.
 /// </summary>
 public class CompoundSubgraphRankTests
@@ -89,53 +89,64 @@ public class CompoundSubgraphRankTests
 		""";
 
 	/// <summary>
-	/// Ordinal layers from dagre 3.1.4 for <see cref="Fixture"/>: nodes on the same row share a layer, and a lower
-	/// number is higher on the page.
+	/// Ordinal layers from mermaid-cli 12.2.0 (mermaid.js) for <see cref="Fixture"/>: nodes on the same row share a layer,
+	/// and a lower number is higher on the page.
 	/// </summary>
-	private static readonly IReadOnlyDictionary<string, int> DagreLayer = new Dictionary<string, int>
+	private static readonly IReadOnlyDictionary<string, int> MermaidJsLayer = new Dictionary<string, int>
 	{
 		["APP_X"] = 0,
-		["T1"] = 1, ["T2"] = 1, ["T3"] = 1,
-		["S1"] = 2, ["APP_Y"] = 2,
-		["P1"] = 3, ["P2"] = 3,
+		["APP_Y"] = 0,
+		["APP_Z"] = 0,
+		["APP_W"] = 0,
+		["RPT_1"] = 0,
+		["RPT_2"] = 0,
+		["T1"] = 1,
+		["T2"] = 1,
+		["T3"] = 1,
+		["S1"] = 2,
+		["P1"] = 3,
+		["P2"] = 3,
 		["S2"] = 4,
-		["TW1"] = 5, ["TW2"] = 5, ["APP_Z"] = 5,
-		["PW1"] = 6, ["RPT_1"] = 6,
-		["E1"] = 7, ["E2"] = 7, ["E3"] = 7, ["E4"] = 7,
-		["SW"] = 8, ["RPT_2"] = 8,
-		["APP_W"] = 9,
+		["TW1"] = 5,
+		["TW2"] = 5,
+		["PW1"] = 6,
+		["E1"] = 7,
+		["E2"] = 7,
+		["E3"] = 7,
+		["E4"] = 7,
+		["SW"] = 8,
 	};
 
 	private static readonly string[] AppNodes = ["APP_X", "APP_Y", "APP_Z", "APP_W", "RPT_1", "RPT_2"];
 
 	[Test]
-	public void Nodes_are_ordered_vertically_as_dagre_orders_them()
+	public void Nodes_are_ordered_vertically_as_mermaid_js_orders_them()
 	{
 		var centres = NodeCentres(MermaidRenderer.RenderSvg(Fixture));
 
 		var violations = new List<string>();
-		foreach (var upper in DagreLayer.Keys)
+		foreach (var upper in MermaidJsLayer.Keys)
 		{
-			foreach (var lower in DagreLayer.Keys)
+			foreach (var lower in MermaidJsLayer.Keys)
 			{
-				if (DagreLayer[upper] < DagreLayer[lower] && centres[upper] >= centres[lower])
+				if (MermaidJsLayer[upper] < MermaidJsLayer[lower] && centres[upper] >= centres[lower])
 				{
 					violations.Add($"{upper} should be above {lower}");
 				}
 			}
 		}
 
-		violations.Count.Should().Be(0, $"dagre places each layer above the next ones; inverted pairs: {string.Join("; ", violations)}");
+		violations.Count.Should().Be(0, $"mermaid-cli places each layer above the next ones; inverted pairs: {string.Join("; ", violations)}");
 	}
 
 	[Test]
-	public void Application_nodes_do_not_share_one_row()
+	public void Application_nodes_share_one_row()
 	{
 		var centres = NodeCentres(MermaidRenderer.RenderSvg(Fixture));
 
 		var rows = AppNodes.Select(id => Math.Round(centres[id])).Distinct().Count();
 
-		rows.Should().BeGreaterThan(1, "the application nodes have edges to different layers in dagre");
+		rows.Should().Be(1, "mermaid-cli places all six application nodes on one row");
 	}
 
 	/// <summary>Vertical centre of each node, by <c>data-id</c>, from the first rectangle of its group.</summary>
